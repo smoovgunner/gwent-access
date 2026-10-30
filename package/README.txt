@@ -1,6 +1,6 @@
 GWENT ACCESS
 A screen reader mod for Gwent: The Witcher Card Game (Steam, Windows)
-Version 0.26
+Version 0.27
 
 Gwent Access makes Gwent playable with the NVDA screen reader. It reads the menus,
 cards, popups and the battle board, and adds keyboard commands for playing a match
@@ -61,6 +61,8 @@ F1               Full details of the selected card: abilities, categories, facti
                  rarity, what each keyword means, and flavor text.
 F6               What keys work on this screen.
 F7               Repeat the last thing spoken.
+Shift+F7         Repeat the last popup, tutorial or screen message. Press again
+                 (within 5 seconds) to hear older ones, up to 15 back.
 F8               Read the current screen.
 F9               Check that the mod is running.
 F5               Switch the game between controller and mouse mode (leave it on
