@@ -1,0 +1,117 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+namespace GwentAccess
+{
+    /// <summary>
+    /// Watches the keyboard on a background thread using Windows directly.
+    /// Only reacts while a window from this game process is in front.
+    /// F1 = card details. F2/F3 = previous/next item, F4 = click it. F5 = toggle controller mode. F6 = what can I do here (key hints). F8 = read the current screen. F9 = check the mod is running.  F7 = repeat the last thing spoken. (F10 avoided: Windows uses it for menus and it steals focus.)
+    /// </summary>
+    internal static class Hotkeys
+    {
+        [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
+        [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+
+        private const int VK_F1 = 0x70, VK_SHIFT = 0x10, VK_F2 = 0x71, VK_F3 = 0x72, VK_F4 = 0x73, VK_MENU = 0x12, VK_F5 = 0x74, VK_F6 = 0x75, VK_F8 = 0x77, VK_F9 = 0x78, VK_F7 = 0x76;
+        private static readonly uint MyPid = (uint)Process.GetCurrentProcess().Id;
+
+        public static void Start()
+        {
+            new Thread(Loop) { IsBackground = true, Name = "GwentAccessHotkeys" }.Start();
+        }
+
+        private static bool GameInFront()
+        {
+            GetWindowThreadProcessId(GetForegroundWindow(), out uint pid);
+            return pid == MyPid;
+        }
+
+        private const int VK_CONTROL = 0x11;
+        private static readonly Dictionary<int, Action> CtrlKeys = new Dictionary<int, Action>
+        {
+            { 0x53, Battle.SayStatus },                                   // Ctrl+S
+            { 0x48, () => { if (DeckBuilder.Active) DeckBuilder.SayList(); else Battle.SayHand(); } }, // Ctrl+H (hand / deck list)
+            { 0x41, DeckBuilder.Add },                                    // Ctrl+A add card to deck
+            { 0x52, DeckBuilder.Remove },                                 // Ctrl+R remove card from deck
+            { 0x44, DeckBuilder.SayStats },                               // Ctrl+D deck stats
+            { 0x51, Navigator.ClickExit },                                // Ctrl+Q press Exit/Back
+            { 0x4E, DeckBuilder.Rename },                                 // Ctrl+N rename deck
+            { 0x46, DeckBuilder.Search },                                 // Ctrl+F card search
+            { 0x55, DeckBuilder.Duplicate },                              // Ctrl+U duplicate deck
+            { 0x42, Navigator.Buy },                                      // Ctrl+B buy with Ore (asks twice)
+            { 0x31, () => { if ((DeckBuilder.Edit != null || DeckBuilder.List != null) && Battle.Controller() == null) Navigator.ClickExit(); else Battle.SayRow(true, GwentGameplay.ELocation.Melee); } },   // Ctrl+1 (in the deck builder: same as Ctrl+Q, the keys are next to each other)
+            { 0x32, () => Battle.SayRow(true, GwentGameplay.ELocation.Ranged) },  // Ctrl+2
+            { 0x33, () => Battle.SayRow(false, GwentGameplay.ELocation.Melee) },  // Ctrl+3
+            { 0x34, () => Battle.SayRow(false, GwentGameplay.ELocation.Ranged) }, // Ctrl+4
+            { 0x4C, Battle.SayLeaders },                                  // Ctrl+L
+            { 0x47, Battle.SayPiles },                                    // Ctrl+G
+            { 0x4D, HandNav.Mulligan },                                   // Ctrl+M
+            { 0x50, HandNav.Pass },                                       // Ctrl+P (twice)
+            { 0x45, HandNav.EndTurn },                                    // Ctrl+E
+            { 0x26, () => HandNav.OpponentCard(-1) },                     // Ctrl+Up
+            { 0x28, () => HandNav.OpponentCard(1) },                      // Ctrl+Down
+            { 0x27, () => HandNav.Move(1) },                              // Ctrl+Right
+            { 0x25, () => HandNav.Move(-1) },                             // Ctrl+Left
+        };
+        private static readonly HashSet<int> CtrlDown = new HashSet<int>();
+
+        private static bool _enterWas;
+        private static void Loop()
+        {
+            bool f1Was = false, f2Was = false, f3Was = false, f4Was = false, f5Was = false, f6Was = false, f8Was = false, f9Was = false, f7Was = false;
+            while (true)
+            {
+                try
+                {
+                    bool ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+                    foreach (var kv in CtrlKeys)
+                    {
+                        bool down = ctrl && (GetAsyncKeyState(kv.Key) & 0x8000) != 0;
+                        if (down && !CtrlDown.Contains(kv.Key) && GameInFront()) { var a = kv.Value; int k = kv.Key; MainThread.Post(() => { Plugin.LogInfo("Hotkey Ctrl+" + (k >= 0x30 && k <= 0x5A ? ((char)k).ToString() : "0x" + k.ToString("X2"))); a(); }); }
+                        if (down) CtrlDown.Add(kv.Key); else CtrlDown.Remove(kv.Key);
+                    }
+                    bool f1 = (GetAsyncKeyState(VK_F1) & 0x8000) != 0;
+                    if (f1 && !f1Was && GameInFront()) MainThread.Post(CardText.ReadDetails);
+                    f1Was = f1;
+                    bool f2 = (GetAsyncKeyState(VK_F2) & 0x8000) != 0;
+                    bool f3 = (GetAsyncKeyState(VK_F3) & 0x8000) != 0;
+                    bool f4 = (GetAsyncKeyState(VK_F4) & 0x8000) != 0;
+                    bool alt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+                    bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+                    if (f2 && !f2Was && GameInFront()) { if (shift) MainThread.Post(() => Navigator.MoveSection(-1)); else MainThread.Post(() => Navigator.Move(-1)); }
+                    if (f3 && !f3Was && GameInFront()) { if (shift) MainThread.Post(() => Navigator.MoveSection(1)); else MainThread.Post(() => Navigator.Move(1)); }
+                    if (f4 && !f4Was && !alt && GameInFront()) MainThread.Post(Navigator.Click);
+                    f2Was = f2; f3Was = f3; f4Was = f4;
+                    bool enter = (GetAsyncKeyState(0x0D) & 0x8000) != 0;
+                    if (enter && !_enterWas && !ctrl && !alt && GameInFront()) MainThread.Post(Navigator.EnterOnBottomButton);
+                    _enterWas = enter;
+                    bool f5 = (GetAsyncKeyState(VK_F5) & 0x8000) != 0;
+                    if (f5 && !f5Was && GameInFront()) MainThread.Post(ControllerMode.Toggle);
+                    f5Was = f5;
+                    bool f6 = (GetAsyncKeyState(VK_F6) & 0x8000) != 0;
+                    if (f6 && !f6Was && GameInFront()) MainThread.Post(KeyHints.ReadHints);
+                    f6Was = f6;
+                    bool f8 = (GetAsyncKeyState(VK_F8) & 0x8000) != 0;
+                    if (f8 && !f8Was && GameInFront()) MainThread.Post(Screens.ReadCurrent);
+                    f8Was = f8;
+                    bool f9 = (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
+                    bool f7 = (GetAsyncKeyState(VK_F7) & 0x8000) != 0;
+                    if (f9 && !f9Was)
+                    {
+                        Plugin.LogInfo("F9 pressed, game in front: " + GameInFront());
+                        if (GameInFront()) Speech.Say("Gwent Access is running.", true);
+                    }
+                    if (f7 && !f7Was && GameInFront()) Speech.Repeat();
+                    f9Was = f9; f7Was = f7;
+                }
+                catch { }
+                Thread.Sleep(30);
+            }
+        }
+    }
+}
