@@ -24,6 +24,7 @@ namespace GwentAccess
                     text = "Placement warning: this card's ability won't work on that row. Enter places it anyway. Escape once cancels, and you keep holding the card.";
                 Plugin.LogInfo("Popup: " + UiText.DebugPath(__instance) + " => " + text);
                 Speech.Say(text, true);
+                Speech.Remember(text);
                 Screens.LastAnnounce = DateTime.UtcNow;
             }
             catch (Exception e) { Plugin.LogInfo("Popup patch error: " + e); }

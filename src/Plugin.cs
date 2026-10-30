@@ -10,7 +10,7 @@ namespace GwentAccess
     {
         public const string Guid = "gwentaccess";
         public const string Name = "Gwent Access";
-        public const string Version = "0.26.2";
+        public const string Version = "0.27.0";
 
         private static ManualLogSource _log;
         public static void LogInfo(string msg) => _log?.LogInfo(msg);

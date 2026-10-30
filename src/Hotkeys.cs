@@ -106,7 +106,7 @@ namespace GwentAccess
                         Plugin.LogInfo("F9 pressed, game in front: " + GameInFront());
                         if (GameInFront()) Speech.Say("Gwent Access is running.", true);
                     }
-                    if (f7 && !f7Was && GameInFront()) Speech.Repeat();
+                    if (f7 && !f7Was && GameInFront()) { if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) Speech.RepeatMessage(); else Speech.Repeat(); }
                     f9Was = f9; f7Was = f7;
                 }
                 catch { }

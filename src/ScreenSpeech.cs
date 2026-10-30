@@ -21,6 +21,7 @@ namespace GwentAccess
             if (text.Length > 0 && text.Length <= 400 && !UiText.LooksLikeNoise(p.gameObject.name))
             {
                 Speech.Say(text, false);
+                Speech.Remember(text);
                 LastAnnounce = DateTime.UtcNow;
             }
         }
@@ -44,6 +45,7 @@ namespace GwentAccess
             if (pn.Contains("DailyLoginReward")) hint = ". Your reward is collected. To continue, press F3 until you hear Click anywhere to continue, then F4";
             else if (pn.StartsWith("UIDBPrefab")) hint = ". Shift F3 jumps between sections. Control Q exits";
             else if (pn.Contains("Settings")) { hint = ". Shift F3 jumps between the categories, the options and the buttons. Left and right arrows change a value"; body = ""; }
+            if (!string.IsNullOrEmpty(body)) Speech.Remember((string.IsNullOrEmpty(name) ? "" : name + ". ") + body);
             if (string.IsNullOrEmpty(body)) return name + hint;
             return (string.IsNullOrEmpty(name) ? body : name + ". " + body) + hint;
         }

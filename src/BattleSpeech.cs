@@ -246,7 +246,7 @@ namespace GwentAccess
                     _oppPassed = opp.HasPassed; _mePassed = me.HasPassed; _ended = false;
                     _oppBoard = BoardIds(gc, them);
                     Plugin.LogInfo("Battle watcher attached.");
-                    Speech.Say("Match started. To swap starting cards: Control Right or Left to pick, Control M to swap. To play a card: Control Right or Left to pick a card from your hand, Enter to pick it up, arrows to choose a row, Enter to place it. You play one card per turn, then Control E ends your turn. Control P twice: pass. Control Up and Down: opponent's cards. Control S: score. Control H: hand. Control 1 to 4: rows. Control L: leaders. Control G: deck and graveyard.", false);
+                    { var ms = "Match started. To swap starting cards: Control Right or Left to pick, Control M to swap. To play a card: Control Right or Left to pick a card from your hand, Enter to pick it up, arrows to choose a row, Enter to place it. You play one card per turn, then Control E ends your turn. Control P twice: pass. Control Up and Down: opponent's cards. Control S: score. Control H: hand. Control 1 to 4: rows. Control L: leaders. Control G: deck and graveyard."; Speech.Say(ms, false); Speech.Remember(ms); }
                     return;
                 }
 
